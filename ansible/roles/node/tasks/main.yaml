@@ -1,0 +1,40 @@
+---
+- name: Install Flux Docker
+  shell: |
+    export usernew="{{ ansible_user }}"
+    echo "1" | bash -i <(curl -s {{ github_multitoolbox_repo_root }}multitoolbox.sh)
+  become: yes
+  become_user: root
+  args:
+    executable: /bin/bash
+
+- name: Deploy Install configuration file to flux node
+  copy:
+    src: "{{ ansible_hostname }}/install_conf.json"
+    dest: "/home/{{ ansible_user }}/install_conf.json"
+
+- name: Deploy flux update aliases to flux node
+  template:
+    src: "update_flux.j2"
+    dest: /etc/profile.d/update_flux.sh
+  become: yes
+
+# Needs to check for already installed / running fluxOS
+- name: "Installing FluxNode - Go get some coffee. :)"
+  shell: |
+    echo "2" | bash -il <(curl -s {{ github_multitoolbox_repo_root }}multitoolbox.sh)
+  args:
+    executable: /bin/bash
+  # async: 28800 # 8 hours
+  become: yes
+  become_user: "{{ ansible_user }}"
+
+- name: Run multitoolbox to configure uPnP
+  shell: |
+    echo "14" | bash -ilc <(curl -s {{ github_multitoolbox_repo_root }}multitoolbox.sh)
+
+- name: Run update-flux command
+  shell: bash -ilc 'update-flux'
+  become: yes
+  become_user: "{{ ansible_user }}"
+  when: zelflux_dir.stdout == "true"
